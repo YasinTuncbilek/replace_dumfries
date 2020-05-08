@@ -76,6 +76,10 @@ principal <- principal(na.omit(data2[, 16:29]), nfactors = 6, rotate = "varimax"
 # Sort loadings
 principal$loadings <- fa.sort(principal$loadings)
 
+# Change names of loadings
+colnames(principal$loadings) <- c("Playing style 1", "Playing style 2", "Playing style 3", "Playing style 4", 
+                            "Playing style 5", "Playing style 6")
+
 ### End ###
 
 ### Heatmap of factor loadings ### --> Deze verbeteren
@@ -84,7 +88,7 @@ library(gplots)
 library(RColorBrewer)
 
 # Create heatmap 
-heatmap.2(principal$loadings, trace = "none", dend = "none", main = "DR/WBR playing style profiles", 
+heatmap.2(principal$loadings, trace = "none", dend = "none", main = "Globale speelstijl-profielen van rechtervleugel", 
           density.info = "none", breaks = seq(-1, 1, by = .2), margins = c(8, 12), cexCol = 1.2, cexRow = 1, 
           Colv = FALSE, Rowv = FALSE,
           sepwidth = c(0.025, 0.025), sepcolor = "white", colsep = 1:ncol(principal$loadings), rowsep = 1:nrow(principal$loadings),
@@ -116,24 +120,100 @@ library(dplyr)
 library(dendextend)
 library(circlize)
 
-# Save as dendrogram
-dend <- hc_data %>% as.dendrogram 
-
-# Use player names as labels
-labels(dend) <- data3$Player[hc_data$order]
-
 # Create custom colors for clusters
 cols_branches <- c("blue", "red", "yellow", "green", "pink", "purple",
-                   "brown", "gray", "black", "azure", "aquamarine",
+                   "brown", "gray", "black", "firebrick", "aquamarine",
                    "deepskyblue", "darksalmon", "khaki", "lightgreen", "orange",
                    "peru", "seagreen", "tan", "yellowgreen", "violet")
 
-# Provide colors to the branches and labels
-dend <- dend %>% 
-  color_branches(k = 21, col = cols_branches) %>%
-  color_labels(col = "black")
+# Highlight Eredivisie players
+highlight <- rownames(data3)[data3$Player %in% c("D. Dumfries", "J. Teze", "Y. Sugawara", "S. Dest", "N. Mazraoui",
+                                                "L. Geertruida", "D. Dankerlui", "Julio Pleguezuelo", "G. Troupée",
+                                                  "D. Abels", "N. Bakboord", "D. Zeefuik", "G. Hamer",
+                                                    "J. Lelieveld", "L. Rota", "C. Essers")]
 
-par(cex = 0.55, mar = c(5, 8, 4, 1)) 
-circlize_dendrogram(dend, labels = TRUE) 
-title(main = "Playing style partners of players on RB/RWB-position")
+# Change colnames
+data3 <- data3 %>% 
+  rename(Speler = Player, Leeftijd = Age, Club = Team)
 
+# Create alternative label for the plot
+data3$Label <- paste0(data3$Speler, " (", data3$Club, ")")
+
+# Save dendrogram as high-res png file
+png("dend.png", units = "in", width = 12, height = 12, res = 600)
+
+# Create dendrogram
+par(cex = 0.45, mar = c(6, 0, 4, 0), oma = c(4, 0, 2, 0)) 
+dend <- hc_data %>% 
+  as.dendrogram %>%
+  set("branches_k_color", value = cols_branches, k = 21) %>%
+  color_labels(labels = highlight , col = "red") 
+  
+# Use player names as labels
+labels(dend) <- data3$Speler[hc_data$order]
+
+# Circlize dendrogram
+dend_circlized <- circlize_dendrogram(dend, labels = TRUE) 
+
+# Add title to dendrogram
+title(main = "Spelers die op basis van data gelijkenissen vertonen in speelstijl", cex.main = 3,
+      sub = "Positie: RB/RWB | Gespeelde minuten: > 650 in het huidige of vorige seizoen | Leeftijd: tot en met 23 jaar | Aantal spelers: 310 | Bron data: Wyscout.", cex.sub = 2)
+
+# Close the device
+dev.off()
+
+# Find cluster of Dumfries
+which(data3$Speler == "D. Dumfries")
+clusters[60]
+cluster_dumfries <- subset(data3, clusters == 7)
+
+# Select columns for table
+library(ggpubr)
+table <- cluster_dumfries[, c("Speler", "Club", "Leeftijd")]
+
+# Save table as high-res png file
+png("tabel.png", units = "in", width = 6, height = 6, res = 600)
+
+# Create table with players in cluster
+table <- ggtexttable(table, theme = ttheme("minimal"))
+
+# Highlight Dumfries and scouted players
+table <- table_cell_bg(table, row = 5, column = 2, linewidth = 5,
+                     fill = "#e23d32", color = "#bf9946")
+
+table <- table_cell_bg(table, row = 15, column = 2, linewidth = 5,
+                     fill = "grey70", color = "grey30")
+  
+table <- table_cell_bg(table, row = 17, column = 2, linewidth = 5,
+                       fill = "grey70", color = "grey30")
+
+table <- table_cell_bg(table, row = 18, column = 2, linewidth = 5,
+                       fill = "grey70", color = "grey30")
+
+table
+
+# Close the device
+dev.off()
+
+# Upload FoForTho logo
+library(magick)
+library(here)
+
+logo_raw <- image_read("Logo FoForTho.png")
+logo <- logo_raw %>%
+  image_scale("50") %>%
+  image_background("grey", flatten = TRUE) %>%
+  image_border("grey", "600x10") %>%
+  image_annotate("FoForTho | @fofortho", color = "white", size = 20, 
+                 location = "+10+25", gravity = "northeast") 
+
+# Call back the plot
+plot_dend <- image_read(paste0(here("/"), "dend.png"))
+
+# Stack them on top of each other
+final_plot_dend <- image_append(image_scale(c(plot_dend, logo), "4000"), stack = TRUE)
+
+## Save Plot
+magick::image_write(
+  image = final_plot_dend, 
+  path = here::here("dend_met logo.png"))
