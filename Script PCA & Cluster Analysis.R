@@ -126,7 +126,7 @@ cols_branches <- c("blue", "red", "yellow", "green", "pink", "purple",
                    "deepskyblue", "darksalmon", "khaki", "lightgreen", "orange",
                    "peru", "seagreen", "tan", "yellowgreen", "violet")
 
-# Highlight Eredivisie players
+# Highlight Eredivisie & KK-divisie players
 highlight <- rownames(data3)[data3$Player %in% c("D. Dumfries", "J. Teze", "Y. Sugawara", "S. Dest", "N. Mazraoui",
                                                 "L. Geertruida", "D. Dankerlui", "Julio Pleguezuelo", "G. Troupée",
                                                   "D. Abels", "N. Bakboord", "D. Zeefuik", "G. Hamer",
@@ -171,6 +171,9 @@ cluster_dumfries <- subset(data3, clusters == 7)
 library(ggpubr)
 table <- cluster_dumfries[, c("Speler", "Club", "Leeftijd")]
 
+# Sort table by age
+table <- table[order(-table$Leeftijd),]
+
 # Save table as high-res png file
 png("tabel.png", units = "in", width = 6, height = 6, res = 600)
 
@@ -178,16 +181,16 @@ png("tabel.png", units = "in", width = 6, height = 6, res = 600)
 table <- ggtexttable(table, theme = ttheme("minimal"))
 
 # Highlight Dumfries and scouted players
-table <- table_cell_bg(table, row = 5, column = 2, linewidth = 5,
+table <- table_cell_bg(table, row = 3, column = 2, linewidth = 5,
                      fill = "#e23d32", color = "#bf9946")
 
-table <- table_cell_bg(table, row = 15, column = 2, linewidth = 5,
+table <- table_cell_bg(table, row = 8, column = 2, linewidth = 5,
                      fill = "grey70", color = "grey30")
   
-table <- table_cell_bg(table, row = 17, column = 2, linewidth = 5,
+table <- table_cell_bg(table, row = 11, column = 2, linewidth = 5,
                        fill = "grey70", color = "grey30")
 
-table <- table_cell_bg(table, row = 18, column = 2, linewidth = 5,
+table <- table_cell_bg(table, row = 12, column = 2, linewidth = 5,
                        fill = "grey70", color = "grey30")
 
 table
@@ -208,12 +211,12 @@ logo <- logo_raw %>%
                  location = "+10+25", gravity = "northeast") 
 
 # Call back the plot
-plot_dend <- image_read(paste0(here("/"), "dend.png"))
+table <- image_read(paste0(here("/"), "tabel.png"))
 
 # Stack them on top of each other
-final_plot_dend <- image_append(image_scale(c(plot_dend, logo), "4000"), stack = TRUE)
+final_plot_table <- image_append(image_scale(c(table, logo), "4000"), stack = TRUE)
 
 ## Save Plot
 magick::image_write(
-  image = final_plot_dend, 
-  path = here::here("dend_met logo.png"))
+  image = final_plot_table, 
+  path = here::here("tabel_met logo.png"))
